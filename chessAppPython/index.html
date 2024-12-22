@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket Test</title>
+</head>
+<body>
+    <h1>WebSocket Test</h1>
+    <button id="connect">Connect</button>
+    <button id="send">Send Query</button>
+    <div id="output"></div>
+    <h1>WebSocket Query Test</h1>
+    <input type="text" id="query" placeholder="Enter your query">
+    <button id="submitQuery">Send Query</button>
+    <div id="output"></div>
+
+    <script>
+        let socket;
+
+        // Connect to WebSocket server
+        document.getElementById('connect').onclick = () => {
+            // Replace "localhost" with your server's IP if hosted elsewhere
+            socket = new WebSocket('ws://localhost:8765');
+
+            socket.onopen = () => {
+                document.getElementById('output').innerHTML += '<p>Connected to server</p>';
+            };
+
+            socket.onmessage = (event) => {
+                document.getElementById('output').innerHTML += `<p>Server: ${event.data}</p>`;
+            };
+
+            socket.onerror = (error) => {
+                document.getElementById('output').innerHTML += `<p>Error: ${error.message}</p>`;
+            };
+
+            socket.onclose = () => {
+                document.getElementById('output').innerHTML += '<p>Disconnected</p>';
+            };
+        };
+
+        // Send message to WebSocket server when Send Query is clicked
+        document.getElementById('send').onclick = () => {
+            if (socket && socket.readyState === WebSocket.OPEN) {
+                const message = 'Hello from the browser!';  // Replace with your query
+                socket.send(message);
+                document.getElementById('output').innerHTML += `<p>You: ${message}</p>`;
+            }
+        };
+        document.getElementById('submitQuery').onclick = () => {
+            if (socket && socket.readyState === WebSocket.OPEN) {
+                const query = document.getElementById('query').value; // Get the input value
+                socket.send(query); // Send query to WebSocket server
+                }
+            };
+    </script>
+</body>
+</html>
