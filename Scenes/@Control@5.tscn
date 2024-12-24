@@ -1,0 +1,21 @@
+[gd_scene load_steps=2 format=3 uid="uid://bthwi6k51cqsx"]
+
+[ext_resource type="Script" path="res://Scripts/pessoa.gd" id="1_cd6bb"]
+
+[node name="_Control_5" type="Control"]
+layout_mode = 3
+anchors_preset = 0
+offset_left = 353.0
+offset_top = 500.0
+offset_right = 353.0
+offset_bottom = 500.0
+scale = Vector2(2, 2)
+script = ExtResource("1_cd6bb")
+
+[node name="Label" type="Label" parent="."]
+layout_mode = 0
+offset_right = 57.0
+offset_bottom = 23.0
+text = "sawe"
+autowrap_mode = 3
+uppercase = true

@@ -4,6 +4,30 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WebSocket Test</title>
+    <style>
+        /* Waiting Room Modal */
+        #waitingRoom {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            text-align: center;
+            color: white;
+            font-size: 24px;
+            padding-top: 20%;
+        }
+        #output {
+            margin-top: 20px;
+            border: 1px solid #ddd;
+            padding: 10px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+    </style>
 </head>
 <body>
     <h1>WebSocket Test</h1>
@@ -15,45 +39,72 @@
     <button id="submitQuery">Send Query</button>
     <div id="output"></div>
 
+    <!-- Waiting Room -->
+    <div id="waitingRoom">Waiting for server response...</div>
+    <!-- socket.send(JSON.stringify(data));-->
+    <!--JSON.parse(event.data);-->
     <script>
         let socket;
 
-        // Connect to WebSocket server
-        document.getElementById('connect').onclick = () => {
-            // Replace "localhost" with your server's IP if hosted elsewhere
+        // Show waiting room
+        function showWaitingRoom(message) {
+            const waitingRoom = document.getElementById('waitingRoom');
+            waitingRoom.innerHTML = message;
+            waitingRoom.style.display = 'block';
+        }
+
+        // Hide waiting room
+        function hideWaitingRoom() {
+            const waitingRoom = document.getElementById('waitingRoom');
+            waitingRoom.style.display = 'none';
+        }
+
+        // Prevent default behavior of buttons
+        document.getElementById('connect').onclick = (event) => {
+            event.preventDefault(); // Prevent page reload
             socket = new WebSocket('ws://localhost:8765');
 
             socket.onopen = () => {
+                hideWaitingRoom();
                 document.getElementById('output').innerHTML += '<p>Connected to server</p>';
             };
 
             socket.onmessage = (event) => {
+                hideWaitingRoom();
                 document.getElementById('output').innerHTML += `<p>Server: ${event.data}</p>`;
             };
 
             socket.onerror = (error) => {
+                hideWaitingRoom();
                 document.getElementById('output').innerHTML += `<p>Error: ${error.message}</p>`;
             };
 
             socket.onclose = () => {
+                hideWaitingRoom();
                 document.getElementById('output').innerHTML += '<p>Disconnected</p>';
             };
         };
 
-        // Send message to WebSocket server when Send Query is clicked
-        document.getElementById('send').onclick = () => {
+        document.getElementById('send').onclick = (event) => {
+            event.preventDefault(); // Prevent page reload
             if (socket && socket.readyState === WebSocket.OPEN) {
-                const message = 'Hello from the browser!';  // Replace with your query
+                const message = 'Hello from the browser!';
+                showWaitingRoom('Sending your message...');
                 socket.send(message);
                 document.getElementById('output').innerHTML += `<p>You: ${message}</p>`;
             }
         };
-        document.getElementById('submitQuery').onclick = () => {
+
+        document.getElementById('submitQuery').onclick = (event) => {
+            event.preventDefault(); // Prevent page reload
             if (socket && socket.readyState === WebSocket.OPEN) {
-                const query = document.getElementById('query').value; // Get the input value
-                socket.send(query); // Send query to WebSocket server
-                }
-            };
+                const query = document.getElementById('query').value;
+                if (query.trim() === '') return; // Avoid sending empty queries
+                showWaitingRoom('Processing your query...');
+                socket.send(query);
+                document.getElementById('output').innerHTML += `<p>You: ${query}</p>`;
+            }
+        };
     </script>
 </body>
 </html>

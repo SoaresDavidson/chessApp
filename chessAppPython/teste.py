@@ -21,9 +21,11 @@ async def echo(websocket):
 
             # Forward message to Godot (assuming Godot is listening)
             # You could store this message and trigger action based on its contents
+
+            #(json.dumps(data) usar para enviar mensagens json
             for client in clients:
                 if client != websocket:  # Don't send the message back to the same client
-                    await client.send(f"Processed: {message}")  # Or any specific response
+                    await client.send(message)  # Or any specific response
 
     except websockets.exceptions.ConnectionClosed:
         print("A client disconnected.")

@@ -1,0 +1,16 @@
+[gd_scene load_steps=2 format=3 uid="uid://d20dospomqk0e"]
+
+[ext_resource type="Script" path="res://Scripts/pessoa.gd" id="1_durea"]
+
+[node name="Pessoa" type="Control"]
+layout_mode = 3
+anchors_preset = 0
+scale = Vector2(2, 2)
+script = ExtResource("1_durea")
+
+[node name="Label" type="Label" parent="."]
+layout_mode = 0
+offset_right = 57.0
+offset_bottom = 23.0
+autowrap_mode = 3
+uppercase = true

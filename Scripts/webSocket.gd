@@ -5,7 +5,7 @@ extends Node
 
 # Our WebSocketClient instance.
 var socket = WebSocketPeer.new()
-
+signal query
 func _ready():
 	# Initiate connection to the given URL.
 	var err = socket.connect_to_url(websocket_url)
@@ -28,8 +28,11 @@ func _process(_delta):
 
 	if state == WebSocketPeer.STATE_OPEN:
 		while socket.get_available_packet_count():
-			print("Got data from server: ", socket.get_packet().get_string_from_utf8())
-			print(socket.get_packet())
+			#print("Got data from server: ", socket.get_packet().get_string_from_utf8())
+			var teste = get_message()
+			query.emit(teste)
+			print(teste)
+			print(typeof(teste))
 
 	# WebSocketPeer.STATE_CLOSING means the socket is closing.
 	# It is important to keep polling for a clean close.
@@ -47,7 +50,12 @@ func _process(_delta):
 func get_message() -> Variant:
 	if socket.get_available_packet_count() < 1:
 		return null
-	var pkt := socket.get_packet()
+	var package := socket.get_packet()
 	if socket.was_string_packet():
-		return pkt.get_string_from_utf8()
-	return bytes_to_var(pkt)
+		return package.get_string_from_utf8()
+	return bytes_to_var(package)
+	
+func send(message: String) -> int:
+	if typeof(message) == TYPE_STRING:
+		return socket.send_text(message)
+	return socket.send(var_to_bytes(message))
