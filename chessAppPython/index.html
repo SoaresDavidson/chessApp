@@ -20,6 +20,37 @@
             font-size: 24px;
             padding-top: 20%;
         }
+
+        /* Game Result Modal */
+        #gameResultModal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            color: black;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            text-align: center;
+            z-index: 1100;
+        }
+
+        #gameResultModal button {
+            margin: 5px;
+            padding: 10px 20px;
+            font-size: 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        #gameResultModal button:hover {
+            background-color: #ddd;
+        }
+
         #output {
             margin-top: 20px;
             border: 1px solid #ddd;
@@ -33,6 +64,7 @@
     <h1>WebSocket Test</h1>
     <button id="connect">Connect</button>
     <button id="send">Send Query</button>
+    <button id="endGame">End Game</button>
     <div id="output"></div>
     <h1>WebSocket Query Test</h1>
     <input type="text" id="query" placeholder="Enter your query">
@@ -41,11 +73,17 @@
 
     <!-- Waiting Room -->
     <div id="waitingRoom">Waiting for server response...</div>
-    <!-- socket.send(JSON.stringify(data));-->
-    <!--JSON.parse(event.data);-->
+     <!-- Game Result Modal -->
+     <div id="gameResultModal">
+        <p>Who won the game?</p>
+        <button id="me">Me</button>
+        <button id="opponent">Opponent</button>
+        <button id="draw">Draw</button>
+    </div>
+
     <script>
         let socket;
-
+        let username;
         // Show waiting room
         function showWaitingRoom(message) {
             const waitingRoom = document.getElementById('waitingRoom');
@@ -59,6 +97,17 @@
             waitingRoom.style.display = 'none';
         }
 
+        function showGameResultModal() {
+            const modal = document.getElementById('gameResultModal');
+            modal.style.display = 'block';
+        }
+
+        // Hide game result modal
+        function hideGameResultModal() {
+            const modal = document.getElementById('gameResultModal');
+            modal.style.display = 'none';
+        }
+
         // Prevent default behavior of buttons
         document.getElementById('connect').onclick = (event) => {
             event.preventDefault(); // Prevent page reload
@@ -67,24 +116,89 @@
             socket.onopen = () => {
                 hideWaitingRoom();
                 document.getElementById('output').innerHTML += '<p>Connected to server</p>';
+                const clientId = 'html_client_' + Date.now();
+                socket.send(JSON.stringify({ type: 'html', id: clientId }));
+
             };
 
             socket.onmessage = (event) => {
-                hideWaitingRoom();
-                document.getElementById('output').innerHTML += `<p>Server: ${event.data}</p>`;
-            };
+                try {
+                    // Parse the received JSON
+                    const data = JSON.parse(event.data);
 
-            socket.onerror = (error) => {
-                hideWaitingRoom();
-                document.getElementById('output').innerHTML += `<p>Error: ${error.message}</p>`;
-            };
+                    // Iterate over the games
+                    Object.keys(data).forEach((gameKey) => {
+                        const entry = data[gameKey];
+                        if (entry) {
+                            const player1 = entry["PLayer1"];
+                            const player2 = entry["PLayer2"];
 
-            socket.onclose = () => {
-                hideWaitingRoom();
-                document.getElementById('output').innerHTML += '<p>Disconnected</p>';
-            };
+                            if (player1 && player1["Name"] === username) {
+                                userInfo = { name: player1["Name"], role: player1["Color"], victories: player1["Victorys"] };
+                                opponentInfo = player2
+                                    ? { name: player2["Name"], role: player2["Color"], victories: player2["Victorys"] }
+                                    : null;
+                            } else if (player2 && player2["Name"] === username) {
+                                userInfo = { name: player2["Name"], role: player2["Color"], victories: player2["Victorys"] };
+                                opponentInfo = player1
+                                    ? { name: player1["Name"], role: player1["Color"], victories: player1["Victorys"] }
+                                    : null;
+                            }
+                        }
+                    });
+
+                    // Update the output
+                    if (userInfo) {
+                        document.getElementById("output").innerHTML = `
+                            <p>Welcome, ${userInfo.name}!</p>
+                            <p>Your role is: ${userInfo.role}</p>
+                            <p>Victories: ${userInfo.victories}</p>
+                            <p>Opponent: ${opponentInfo ? `${opponentInfo.name} (${opponentInfo.role}, ${opponentInfo.victories} victories)` : "None"}</p>
+                        `;
+                    } else {
+                        document.getElementById("output").innerHTML = `
+                            <p>Your name was not found in the data.</p>
+                            <p>Received data: ${JSON.stringify(data)}</p>
+                        `;
+                    }
+                } catch (e) {
+                    console.error("Error parsing JSON:", e);
+                    document.getElementById("output").innerHTML += `<p>Invalid JSON received: ${event.data}</p>`;
+                }
+                finally{
+                    hideWaitingRoom()
+                }
+        };
+        document.getElementById('endGame').onclick = (event) => {
+            event.preventDefault(); // Prevent page reload
+            showGameResultModal();
         };
 
+        // Handle result button clicks
+        const resultButtons = document.querySelectorAll('#gameResultModal button');
+        resultButtons.forEach(button => {
+            button.onclick = () => {
+                const result = button.id; // "me", "opponent", or "draw"
+                if (socket && socket.readyState === WebSocket.OPEN) {
+                    hideGameResultModal();
+                    showWaitingRoom('Sending game result to server...');
+
+                    const gameResult = {
+                        type: "gameEnd",
+                        winner: result,
+                        username: username
+                    };
+
+                    socket.send(JSON.stringify(gameResult));
+
+                    document.getElementById('output').innerHTML += `<p>Game result sent: ${JSON.stringify(gameResult)}</p>`;
+                } else {
+                    alert("You must be connected to end the game.");
+                }
+            };
+        });
+
+        };
         document.getElementById('send').onclick = (event) => {
             event.preventDefault(); // Prevent page reload
             if (socket && socket.readyState === WebSocket.OPEN) {
@@ -100,9 +214,20 @@
             if (socket && socket.readyState === WebSocket.OPEN) {
                 const query = document.getElementById('query').value;
                 if (query.trim() === '') return; // Avoid sending empty queries
+                username = query.trim()
+                const message = {"Player" : username}
                 showWaitingRoom('Processing your query...');
-                socket.send(query);
+                socket.send(JSON.stringify(message));
                 document.getElementById('output').innerHTML += `<p>You: ${query}</p>`;
+            }
+        };
+
+        function toggleVisibility() {
+            const element = document.getElementById("myElement");
+            if (element.style.display === "none") {
+                element.style.display = "block"; // Show the element
+            } else {
+                element.style.display = "none"; // Hide the element
             }
         };
     </script>

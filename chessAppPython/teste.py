@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import asyncio
+import json
 from websockets import serve
 import websockets
 from http.server import SimpleHTTPRequestHandler
@@ -7,30 +8,40 @@ from socketserver import ThreadingMixIn
 from http.server import HTTPServer
 import threading
 
-# List of all connected WebSocket clients (for HTML and Godot)
-clients = []
-
 # WebSocket handler function
+clients = {}  # Dictionary to store clients and their roles
+
 async def echo(websocket):
-    # Register the client
-    clients.append(websocket)
+    global clients
     try:
-        # Listen for messages from any client (HTML or Godot)
         async for message in websocket:
-            print(f"Received message: {message}")
+            print(f"Received: {message}")
+            data = json.loads(message)
 
-            # Forward message to Godot (assuming Godot is listening)
-            # You could store this message and trigger action based on its contents
-
-            #(json.dumps(data) usar para enviar mensagens json
-            for client in clients:
-                if client != websocket:  # Don't send the message back to the same client
-                    await client.send(message)  # Or any specific response
-
+            # Handle client identification
+            if "type" in data and data["type"] in ["html", "godot"]:
+                clients[websocket] = data["type"]
+                print(f"Client identified as: {data['type']}")
+                continue
+            
+            # Forward messages based on type
+            sender_type = clients.get(websocket)
+            if sender_type == "html":
+                # Send only to Godot
+                for client, client_type in clients.items():
+                    if client_type == "godot":
+                        await client.send(message)
+            elif sender_type == "godot":
+                # Send only to HTML
+                for client, client_type in clients.items():
+                    if client_type == "html":
+                        await client.send(message)
     except websockets.exceptions.ConnectionClosed:
-        print("A client disconnected.")
+        print("A client disconnected")
     finally:
-        clients.remove(websocket)
+        # Remove disconnected client
+        if websocket in clients:
+            del clients[websocket]
 
 
 # HTTP server to serve HTML files
@@ -54,7 +65,6 @@ async def run_http_server():
 async def main():
     # Run HTTP server
     await run_http_server()
-
     # Start WebSocket server
     async with serve(echo, "localhost", 8765):
         print("WebSocket server running on ws://0.0.0.0:8765")

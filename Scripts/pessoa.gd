@@ -11,7 +11,7 @@ func _process(delta: float) -> void:
 	pass
 
 func fill_form(form):
-	pass
-	nome = form
+	var player = JSON.parse_string(form)
+	nome = player["Player"]
 	$Label.text = nome
 	$"..".create_form.disconnect(fill_form)

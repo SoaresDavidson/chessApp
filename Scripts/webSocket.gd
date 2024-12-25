@@ -16,7 +16,9 @@ func _ready():
 		# Wait for the socket to connect.
 		await get_tree().create_timer(2).timeout
 		# Send data.
-		socket.send_text("Test packet")
+		var message = { "type": "godot", "id": "godot_client_1" }
+		var json_string = JSON.stringify(message)
+		socket.send_text(json_string)
 
 func _process(_delta):
 	# Call this in _process or _physics_process. Data transfer and state updates
@@ -32,7 +34,6 @@ func _process(_delta):
 			var teste = get_message()
 			query.emit(teste)
 			print(teste)
-			print(typeof(teste))
 
 	# WebSocketPeer.STATE_CLOSING means the socket is closing.
 	# It is important to keep polling for a clean close.
@@ -55,7 +56,7 @@ func get_message() -> Variant:
 		return package.get_string_from_utf8()
 	return bytes_to_var(package)
 	
-func send(message: String) -> int:
+func send(message) -> int:
 	if typeof(message) == TYPE_STRING:
 		return socket.send_text(message)
 	return socket.send(var_to_bytes(message))
