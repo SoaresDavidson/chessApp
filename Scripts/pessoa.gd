@@ -10,8 +10,8 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	pass
 
-func fill_form(form):
-	var player = JSON.parse_string(form)
-	nome = player["Player"]
+func fill_form(player):
+	nome = player["username"]
 	$Label.text = nome
 	$"..".create_form.disconnect(fill_form)
+	Global.players_list.append(self)

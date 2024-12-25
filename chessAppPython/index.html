@@ -130,23 +130,26 @@
                     Object.keys(data).forEach((gameKey) => {
                         const entry = data[gameKey];
                         if (entry) {
-                            const player1 = entry["PLayer1"];
-                            const player2 = entry["PLayer2"];
+                            const player1 = entry["player1"];
+                            const player2 = entry["player2"];
 
-                            if (player1 && player1["Name"] === username) {
-                                userInfo = { name: player1["Name"], role: player1["Color"], victories: player1["Victorys"] };
+                            if (player1 && player1["name"] === username) {
+                                userInfo = { name: player1["name"], role: player1["color"], victories: player1["victories"] };
                                 opponentInfo = player2
-                                    ? { name: player2["Name"], role: player2["Color"], victories: player2["Victorys"] }
+                                    ? { name: player2["name"], role: player2["color"], victories: player2["victories"] }
                                     : null;
-                            } else if (player2 && player2["Name"] === username) {
-                                userInfo = { name: player2["Name"], role: player2["Color"], victories: player2["Victorys"] };
+                            } else if (player2 && player2["name"] === username) {
+                                userInfo = { name: player2["name"], role: player2["color"], victories: player2["victories"] };
                                 opponentInfo = player1
-                                    ? { name: player1["Name"], role: player1["Color"], victories: player1["Victorys"] }
+                                    ? { name: player1["name"], role: player1["color"], victories: player1["victories"] }
                                     : null;
+                                    
                             }
                         }
                     });
-
+                    // if (opponentInfo){
+                    //     document.getElementById('opponent').id = opponentInfo["name"]
+                    // }
                     // Update the output
                     if (userInfo) {
                         document.getElementById("output").innerHTML = `
@@ -154,7 +157,7 @@
                             <p>Your role is: ${userInfo.role}</p>
                             <p>Victories: ${userInfo.victories}</p>
                             <p>Opponent: ${opponentInfo ? `${opponentInfo.name} (${opponentInfo.role}, ${opponentInfo.victories} victories)` : "None"}</p>
-                        `;
+                        `;//
                     } else {
                         document.getElementById("output").innerHTML = `
                             <p>Your name was not found in the data.</p>
@@ -215,7 +218,7 @@
                 const query = document.getElementById('query').value;
                 if (query.trim() === '') return; // Avoid sending empty queries
                 username = query.trim()
-                const message = {"Player" : username}
+                const message = {"type": "player","username" : username}
                 showWaitingRoom('Processing your query...');
                 socket.send(JSON.stringify(message));
                 document.getElementById('output').innerHTML += `<p>You: ${query}</p>`;

@@ -12,4 +12,5 @@ script = ExtResource("1_durea")
 layout_mode = 0
 offset_right = 57.0
 offset_bottom = 23.0
+text = "teste"
 autowrap_mode = 3
