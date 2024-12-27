@@ -5,7 +5,7 @@ extends Node
 
 # Our WebSocketClient instance.
 var socket = WebSocketPeer.new()
-signal query
+signal received_message
 func _ready():
 	# Initiate connection to the given URL.
 	var err = socket.connect_to_url(websocket_url)
@@ -31,9 +31,9 @@ func _process(_delta):
 	if state == WebSocketPeer.STATE_OPEN:
 		while socket.get_available_packet_count():
 			#print("Got data from server: ", socket.get_packet().get_string_from_utf8())
-			var teste = get_message()
-			query.emit(teste)
-			print(teste)
+			var message = get_message()
+			received_message.emit(message)
+			print(message)
 
 	# WebSocketPeer.STATE_CLOSING means the socket is closing.
 	# It is important to keep polling for a clean close.

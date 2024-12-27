@@ -74,12 +74,6 @@
     <!-- Waiting Room -->
     <div id="waitingRoom">Waiting for server response...</div>
      <!-- Game Result Modal -->
-     <div id="gameResultModal">
-        <p>Who won the game?</p>
-        <button id="me">Me</button>
-        <button id="opponent">Opponent</button>
-        <button id="draw">Draw</button>
-    </div>
 
     <script>
         let socket;
@@ -147,10 +141,7 @@
                             }
                         }
                     });
-                    // if (opponentInfo){
-                    //     document.getElementById('opponent').id = opponentInfo["name"]
-                    // }
-                    // Update the output
+      
                     if (userInfo) {
                         document.getElementById("output").innerHTML = `
                             <p>Welcome, ${userInfo.name}!</p>
@@ -174,32 +165,14 @@
         };
         document.getElementById('endGame').onclick = (event) => {
             event.preventDefault(); // Prevent page reload
-            showGameResultModal();
+            // showGameResultModal()
+            if (socket && socket.readyState === WebSocket.OPEN) {
+                showWaitingRoom('Sending game result to server...');
+                const gameResult = {"type":"gameEnd","username": userInfo["name"],"opponent":opponentInfo["name"]}
+                socket.send(JSON.stringify(gameResult));
+                document.getElementById('output').innerHTML += `<p>Game result sent: ${JSON.stringify(gameResult)}</p>`;
+            }
         };
-
-        // Handle result button clicks
-        const resultButtons = document.querySelectorAll('#gameResultModal button');
-        resultButtons.forEach(button => {
-            button.onclick = () => {
-                const result = button.id; // "me", "opponent", or "draw"
-                if (socket && socket.readyState === WebSocket.OPEN) {
-                    hideGameResultModal();
-                    showWaitingRoom('Sending game result to server...');
-
-                    const gameResult = {
-                        type: "gameEnd",
-                        winner: result,
-                        username: username
-                    };
-
-                    socket.send(JSON.stringify(gameResult));
-
-                    document.getElementById('output').innerHTML += `<p>Game result sent: ${JSON.stringify(gameResult)}</p>`;
-                } else {
-                    alert("You must be connected to end the game.");
-                }
-            };
-        });
 
         };
         document.getElementById('send').onclick = (event) => {

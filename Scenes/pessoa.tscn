@@ -14,3 +14,11 @@ offset_right = 57.0
 offset_bottom = 23.0
 text = "teste"
 autowrap_mode = 3
+
+[node name="Button" type="Button" parent="."]
+visible = false
+layout_mode = 0
+offset_right = 41.0
+offset_bottom = 21.0
+
+[connection signal="pressed" from="Button" to="." method="_on_button_pressed"]

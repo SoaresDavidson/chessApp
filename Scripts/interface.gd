@@ -6,14 +6,14 @@ var distance = 25
 var lines:Array = []
 func _ready() -> void:
 	#$webSocket.query.connect(new_form)
-	$webSocket.query.connect(func(message):
+	$webSocket.received_message.connect(func(message):
 		var parsed_message = JSON.parse_string(message)
 		if parsed_message["type"] == "player":
 			new_form(parsed_message)
 		elif parsed_message["type"] == "gameEnd":
-			pass
-			#update_player()
+			update_player(parsed_message)
 		)
+	
 
 func _draw() -> void:
 	if lines:
@@ -65,24 +65,37 @@ func _on_button_pressed() -> void:
 				}
 		}
 		num += 1
-		
+	Global.current_game = game
 	var data_to_send = game
 	var json_string = JSON.stringify(data_to_send)
 	$webSocket.send(json_string)
-	Global.current_game = game
+	
 	show_games(players_list)
+	$Button.visible = false
 	
 func show_games(players_list:Array):
 	var distance = 25
 	for index in range(0, len(players_list), 2):
 		var player1 = players_list[index]
-		var player2 = players_list[index+1]
 		player1.global_position.x = distance
 		distance += player1.get_node("Label").get("size").x * 2 + 25
+		if len(players_list) <= 1: return
+		var player2 = players_list[index+1]
 		player2.global_position.x = distance
 		distance += player2.get_node("Label").get("size").x * 2 + 25
 		lines = [Vector2(distance - player1.get_node("Label").get("size").x * 2 -75,550), Vector2(distance-150,550)]
 		queue_redraw()
 
-func update_player():
-	pass
+func update_player(message):
+	var player1_name = message["username"]
+	var player2_name = message["opponent"]
+	var player1_object = search_player(player1_name)
+	var player2_object = search_player(player2_name)
+	player1_object.show_score_button()
+	player2_object.show_score_button()
+
+func search_player(player_name) -> Object:
+	for player in Global.players_list:
+		if player_name == player.nome:
+			return player
+	return null
