@@ -101,6 +101,75 @@
             const modal = document.getElementById('gameResultModal');
             modal.style.display = 'none';
         }
+        function endGame(data){
+            try {
+                // Iterate over the games
+                const winner = data["winner"];
+                const loser = data["loser"]
+
+                if (winner === username) {
+                    document.getElementById('output').innerHTML += `<p>Congrats on your victory!</p>`;
+                    showWaitingRoom("Waiting for another player to be ready...")
+                } else if (loser === username) {
+                    document.getElementById('output').innerHTML += `<p>You can stil try to win the next game</p>`;
+                    showWaitingRoom("Waiting for another player to be ready...")
+                }
+                
+            } catch (e) {
+                console.error("Error reading JSON:", e);
+                document.getElementById("output").innerHTML += `<p>Invalid JSON received: ${event.data}</p>`;
+            }
+                
+
+        }
+        function startGame(data){
+                try {
+                    if (data) {
+                        const player1 = data["player1"];
+                        const player2 = data["player2"];
+                        let userInfo = null
+                        let opponent = null
+                        if (player1 && player1["name"] === username) {
+                            userInfo = { name: player1["name"], role: player1["color"], victories: player1["victories"] };
+                            opponentInfo = player2
+                                ? { name: player2["name"], role: player2["color"], victories: player2["victories"] }
+                                : null;
+                        } else if (player2 && player2["name"] === username) {
+                            userInfo = { name: player2["name"], role: player2["color"], victories: player2["victories"] };
+                            opponentInfo = player1
+                                ? { name: player1["name"], role: player1["color"], victories: player1["victories"] }
+                                : null;
+                                
+                        }
+                    }
+      
+                    if (userInfo) {
+                        document.getElementById("output").innerHTML = `
+                            <p>Welcome, ${userInfo.name}!</p>
+                            <p>Your role is: ${userInfo.role}</p>
+                            <p>Victories: ${userInfo.victories}</p>
+                        `;// <p>Opponent: ${opponentInfo ? `${opponentInfo.name} (${opponentInfo.role}, ${opponentInfo.victories} victories)` : "None"}</p>
+                        if (opponentInfo){
+                            document.getElementById("output").innerHTML += `<p>Opponent:${opponentInfo.name} (${opponentInfo.role}, ${opponentInfo.victories} victories)}</p>`
+                        }else{
+                            showWaitingRoom("Unfortunately there wanst an opponent left for you.Wait until the next round")
+                            return
+                        }
+                    } else {
+                        document.getElementById("output").innerHTML = `
+                            <p>Your name was not found in the data.</p>
+                            <p>Received data: ${JSON.stringify(data)}</p>
+                        `;
+                    }
+                    if (opponentInfo){
+                        hideWaitingRoom()
+                    }
+                } catch (e) {
+                    console.error("Error reading JSON:", e);
+                    document.getElementById("output").innerHTML += `<p>Invalid JSON received: ${event.data}</p>`;
+                }
+
+        }
 
         // Prevent default behavior of buttons
         document.getElementById('connect').onclick = (event) => {
@@ -114,58 +183,24 @@
                 socket.send(JSON.stringify({ type: 'html', id: clientId }));
 
             };
-
             socket.onmessage = (event) => {
-                try {
+                try{ 
                     // Parse the received JSON
                     const data = JSON.parse(event.data);
 
-                    // Iterate over the games
-                    Object.keys(data).forEach((gameKey) => {
-                        const entry = data[gameKey];
-                        if (entry) {
-                            const player1 = entry["player1"];
-                            const player2 = entry["player2"];
-
-                            if (player1 && player1["name"] === username) {
-                                userInfo = { name: player1["name"], role: player1["color"], victories: player1["victories"] };
-                                opponentInfo = player2
-                                    ? { name: player2["name"], role: player2["color"], victories: player2["victories"] }
-                                    : null;
-                            } else if (player2 && player2["name"] === username) {
-                                userInfo = { name: player2["name"], role: player2["color"], victories: player2["victories"] };
-                                opponentInfo = player1
-                                    ? { name: player1["name"], role: player1["color"], victories: player1["victories"] }
-                                    : null;
-                                    
-                            }
-                        }
-                    });
-      
-                    if (userInfo) {
-                        document.getElementById("output").innerHTML = `
-                            <p>Welcome, ${userInfo.name}!</p>
-                            <p>Your role is: ${userInfo.role}</p>
-                            <p>Victories: ${userInfo.victories}</p>
-                            <p>Opponent: ${opponentInfo ? `${opponentInfo.name} (${opponentInfo.role}, ${opponentInfo.victories} victories)` : "None"}</p>
-                        `;//
-                    } else {
-                        document.getElementById("output").innerHTML = `
-                            <p>Your name was not found in the data.</p>
-                            <p>Received data: ${JSON.stringify(data)}</p>
-                        `;
+                    if (data["type"] === "gameStart"){
+                        startGame(data)
                     }
-                } catch (e) {
+                    if (data["type"] === "gameEnd"){
+                        endGame(data)
+                    }
+                }catch (e) {
                     console.error("Error parsing JSON:", e);
                     document.getElementById("output").innerHTML += `<p>Invalid JSON received: ${event.data}</p>`;
                 }
-                finally{
-                    hideWaitingRoom()
-                }
-        };
+            };
         document.getElementById('endGame').onclick = (event) => {
-            event.preventDefault(); // Prevent page reload
-            // showGameResultModal()
+            event.preventDefault();
             if (socket && socket.readyState === WebSocket.OPEN) {
                 showWaitingRoom('Sending game result to server...');
                 const gameResult = {"type":"gameEnd","username": userInfo["name"],"opponent":opponentInfo["name"]}

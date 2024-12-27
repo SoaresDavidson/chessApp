@@ -27,13 +27,12 @@ func _process(_delta):
 	
 	# get_ready_state() tells you what state the socket is in.
 	var state = socket.get_ready_state()
-
 	if state == WebSocketPeer.STATE_OPEN:
 		while socket.get_available_packet_count():
 			#print("Got data from server: ", socket.get_packet().get_string_from_utf8())
 			var message = get_message()
 			received_message.emit(message)
-			print(message)
+			print("received message:"+message)
 
 	# WebSocketPeer.STATE_CLOSING means the socket is closing.
 	# It is important to keep polling for a clean close.
@@ -57,6 +56,7 @@ func get_message() -> Variant:
 	return bytes_to_var(package)
 	
 func send(message) -> int:
+	print("sended message:"+ message)
 	if typeof(message) == TYPE_STRING:
 		return socket.send_text(message)
 	return socket.send(var_to_bytes(message))

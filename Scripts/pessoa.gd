@@ -1,12 +1,13 @@
 extends Control
+class_name Pessoa
 
 @onready var nome = null
 @onready var victories:int = 0
 @onready var button: Button = $Button
-
+@onready var opponent = null
 signal score
+signal player_free
 func _ready() -> void:
-	pass
 	$"..".create_form.connect(fill_form)
 
 # Called every frame. 'delta' is the elapsed time since the previous frame.
@@ -23,26 +24,23 @@ func fill_form(player):
 
 func _on_button_pressed() -> void:
 	victories += 1
-	hide_score_button()
 	position.y -= 75
-	for game in Global.current_game:
-		var player1 = Global.current_game[game]["player1"]
-		var player2 = Global.current_game[game]["player2"]
-		if player1["name"] == nome:
-			var player_object = search_player(player2["name"])
-			player_object.hide_score_button()
-		if player2["name"] == nome:
-			var player_object = search_player(player1["name"])
-			player_object.hide_score_button()
+	hide_score_button()
+	opponent.hide_score_button()
+	change_player_list()
+	var gameEnd = {"type": "gameEnd","winner":self.nome,"loser":opponent.nome}
+	var json_string = JSON.stringify(gameEnd)
+	$".."/webSocket.send(json_string)
+	$"..".find_match()
 
+func change_player_list() -> void:
+	Global.in_game_players.erase(self)
+	Global.off_game_players.append(self)
+	Global.in_game_players.erase(opponent)
+	Global.off_game_players.append(opponent)
+	
 func show_score_button():
 	$Button.visible = true
 
 func hide_score_button():
 	$Button.visible = false
-	
-func search_player(player_name) -> Object:
-	for player in Global.players_list:
-		if player_name == player.nome:
-			return player
-	return null

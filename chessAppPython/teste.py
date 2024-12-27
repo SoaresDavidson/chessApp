@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 import asyncio
 import json
-from websockets import serve
 import websockets
 from http.server import SimpleHTTPRequestHandler
 from socketserver import ThreadingMixIn
@@ -66,7 +65,7 @@ async def main():
     # Run HTTP server
     await run_http_server()
     # Start WebSocket server
-    async with serve(echo, "localhost", 8765):
+    async with websockets.serve(echo, "localhost", 8765):
         print("WebSocket server running on ws://0.0.0.0:8765")
         await asyncio.get_running_loop().create_future()  # Run forever
 
