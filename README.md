@@ -217,4 +217,30 @@ async def main():
 asyncio.run(main())
 ```
 
+### Execution Steps
+1. **Run the Python Server**:
+   Execute the Python script to start both the HTTP and WebSocket servers.
+
+   ```bash
+   python server.py
+   ```
+
+2. **Open the Web Application**:
+   Open a web browser and navigate to `http://localhost:8000`. This will load the `index.html` file served by the Python HTTP server.
+
+3. **Establish Connection**:
+   - Enter your username in the web application.
+   - Click the "Connect" button to establish a WebSocket connection with the server.
+
+4. **Start the Game**:
+   - The server will pair connected users into a game session.
+   - Once the game starts, the roles and game details will be displayed on the web interface.
+
+5. **Monitor Logs**:
+   - Check the server console for logs to ensure all connections and game events are handled correctly.
+
+6. **End the Game**:
+   - After the game ends, results will be communicated back to the web application and displayed to the user.
+
+---
 
