@@ -31,6 +31,86 @@ The front-end is a basic web interface that:
 ### Files
 - `index.html`: Contains the structure and logic for interacting with the WebSocket server.
 
+### Key Snippets
+
+#### WebSocket Connection
+```javascript
+socket = new WebSocket('ws://localhost:8765');
+
+socket.onopen = () => {
+    hideWaitingRoom();
+    document.getElementById('output').innerHTML += '<p>Connected to server</p>';
+    const clientId = 'html_client_' + Date.now();
+    socket.send(JSON.stringify({ type: 'html', id: clientId }));
+};
+
+socket.onmessage = (event) => {
+    try { 
+        const data = JSON.parse(event.data);
+        if (data["type"] === "gameStart") {
+            startGame(data);
+        }
+        if (data["type"] === "gameEnd") {
+            endGame(data);
+        }
+    } catch (e) {
+        console.error("Error parsing JSON:", e);
+        document.getElementById("output").innerHTML += `<p>Invalid JSON received: ${event.data}</p>`;
+    }
+};
+```
+
+#### Game Start Handling
+```javascript
+function startGame(data) {
+    try {
+        if (data) {
+            const player1 = data["player1"];
+            const player2 = data["player2"];
+            let userInfo = null;
+            let opponentInfo = null;
+
+            if (player1 && player1["name"] === username) {
+                userInfo = { name: player1["name"], role: player1["color"], victories: player1["victories"] };
+                opponentInfo = player2
+                    ? { name: player2["name"], role: player2["color"], victories: player2["victories"] }
+                    : null;
+            } else if (player2 && player2["name"] === username) {
+                userInfo = { name: player2["name"], role: player2["color"], victories: player2["victories"] };
+                opponentInfo = player1
+                    ? { name: player1["name"], role: player1["color"], victories: player1["victories"] }
+                    : null;
+            }
+        }
+
+        if (userInfo) {
+            document.getElementById("output").innerHTML = `
+                <p>Welcome, ${userInfo.name}!</p>
+                <p>Your role is: ${userInfo.role}</p>
+                <p>Victories: ${userInfo.victories}</p>
+            `;
+            if (opponentInfo) {
+                document.getElementById("output").innerHTML += `<p>Opponent: ${opponentInfo.name} (${opponentInfo.role}, ${opponentInfo.victories} victories)</p>`;
+            } else {
+                showWaitingRoom("Unfortunately, there wasn't an opponent left for you. Wait until the next round.");
+                return;
+            }
+        } else {
+            document.getElementById("output").innerHTML = `
+                <p>Your name was not found in the data.</p>
+                <p>Received data: ${JSON.stringify(data)}</p>
+            `;
+        }
+        if (opponentInfo) {
+            hideWaitingRoom();
+        }
+    } catch (e) {
+        console.error("Error reading JSON:", e);
+        document.getElementById("output").innerHTML += `<p>Invalid JSON received: ${event.data}</p>`;
+    }
+}
+```
+
 ---
 
 ## Back-End (Python)
@@ -77,66 +157,64 @@ The back-end is a combination of an HTTP server and a WebSocket server. It uses 
 ### Code Explanation
 
 #### WebSocket Handler
-- Manages client connections and forwards messages based on their type (`html` or `godot`).
-- Adds clients to the `clients` dictionary when they identify themselves.
-- Forwards messages only to the appropriate recipient type.
+```python
+async def echo(websocket):
+    global clients
+    try:
+        async for message in websocket:
+            print(f"Received: {message}")
+            data = json.loads(message)
+
+            # Handle client identification
+            if "type" in data and data["type"] in ["html", "godot"]:
+                clients[websocket] = data["type"]
+                print(f"Client identified as: {data['type']}")
+                continue
+            
+            # Forward messages based on type
+            sender_type = clients.get(websocket)
+            if sender_type == "html":
+                # Send only to Godot
+                for client, client_type in clients.items():
+                    if client_type == "godot":
+                        await client.send(message)
+            elif sender_type == "godot":
+                # Send only to HTML
+                for client, client_type in clients.items():
+                    if client_type == "html":
+                        await client.send(message)
+    except websockets.exceptions.ConnectionClosed:
+        print("A client disconnected")
+    finally:
+        # Remove disconnected client
+        if websocket in clients:
+            del clients[websocket]
+```
 
 #### HTTP Server
-- Serves the HTML front-end through the `/` endpoint.
-- Defaults to serving `index.html` for root requests.
-- Runs on port `8080`.
+```python
+class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
+    """Handle HTTP requests in a separate thread."""
+    daemon_threads = True
+
+class HTTPHandler(SimpleHTTPRequestHandler):
+    def do_GET(self):
+        if self.path == '/':
+            self.path = '/index.html'  # Default file to serve
+        return super().do_GET()
+```
 
 #### `main` Function
-- Runs the HTTP server in a separate thread.
-- Starts the WebSocket server on port `8765`.
-- Uses `asyncio` to manage asynchronous tasks and keep the servers running.
+```python
+async def main():
+    # Run HTTP server
+    await run_http_server()
+    # Start WebSocket server
+    async with websockets.serve(echo, "localhost", 8765):
+        print("WebSocket server running on ws://0.0.0.0:8765")
+        await asyncio.get_running_loop().create_future()  # Run forever
 
-### Execution Steps
-1. **Run the Python Server**:
-   Execute the Python script to start both the HTTP and WebSocket servers.
+asyncio.run(main())
+```
 
-   ```bash
-   python server.py
-   ```
-
-2. **Open the Web Application**:
-   Navigate to `http://localhost:8080` in your browser to access the front-end.
-
-3. **Connect to WebSocket**:
-   - Click the "Connect" button to establish a WebSocket connection.
-   - Interact with the UI to send messages and simulate game scenarios.
-
----
-
-## How It Works
-
-### Communication Flow
-1. **Client Connection**:
-   - The HTML client sends a message identifying itself as `html`.
-   - Godot clients identify themselves as `godot`.
-
-2. **Message Routing**:
-   - HTML messages are forwarded only to `godot` clients.
-   - Godot messages are forwarded only to `html` clients.
-
-3. **Game Logic**:
-   - The server processes JSON messages to trigger game events (e.g., start or end game).
-   - Updates are sent to the appropriate clients in real-time.
-
-### Error Handling
-- Handles client disconnection gracefully by removing them from the `clients` dictionary.
-- Logs parsing errors when invalid JSON is received.
-
----
-
-## Conclusion
-This system demonstrates:
-- Real-time communication using WebSockets.
-- Asynchronous server-side programming with `asyncio`.
-- Integrating an HTTP server with a WebSocket server for a seamless front-end/back-end interaction.
-
-For further development, you can:
-- Enhance the game logic.
-- Improve UI responsiveness.
-- Add authentication or user sessions.
 
